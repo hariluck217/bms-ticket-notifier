@@ -294,6 +294,76 @@ def detect_changes(old_state, new_state):
     old_shows = old_state.get("shows", {})
     new_shows = new_state.get("shows", {})
 
+    for key in set(new_shows) - set(old_shows):
+        s = new_shows[key]
+        changes.append(f"🆕 NEW: {s['venue']} — {s['time']} [{s['date']}] ({s['cat']} ₹{s['price']})")
+
+    for key, new_s in new_shows.items():
+        old_s = old_shows.get(key)
+        if old_s and old_s["status"] == "0" and new_s["status"] != "0":
+            lbl, ico = AVAIL_STATUS_MAP.get(new_s["status"], ("UNKNOWN", "⚪"))
+            changes.append(f"{ico} BACK: {new_s['venue']} — {new_s['time']} [{new_s['date']}] ({new_s['cat']} → {lbl})")
+
+    return changes
+
+
+def _cat_status_label(status):
+    return AVAIL_STATUS_MAP.get(status, ("UNKNOWN", ""))
+
+
+def send_telegram(title, changes, shows, movie_info, bms_url):
+    token = TELEGRAM_BOT_TOKEN.strip()
+    chat_id = TELEGRAM_CHAT_ID.strip()
+
+    if not token or not chat_id:
+        print("  ⚠️ Skipping Telegram — TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set.")
+        return
+
+    lines = [f"🎬 {title}", ""]
+    if changes:
+        lines.append("⚡ Changes Detected:")
+        for c in changes[:15]:
+            lines.append(f"• {c}")
+        lines.append("")
+
+    venue_groups = {}
+    for s in shows:
+        venue_groups.setdefault(s.venue_name, []).append(s)
+
+    if venue_groups:
+        lines.append("🎟 Current Showtimes:")
+        for vname, vshows in venue_groups.items():
+            lines.append(f"\n📍 {vname}")
+            for s in vshows:
+                cats = " | ".join(
+                    f"{c.name} ₹{c.price} ({_cat_status_label(c.status)})"
+                    for c in s.categories
+                )
+                fmt = f" [{s.screen_attr}]" if s.screen_attr else ""
+                lines.append(f"  🕒 {s.time}{fmt} [{s.date_code}] — {cats}")
+
+    lines.extend(["", f"🔗 Book here: {bms_url}"])
+    message = "\n".join(lines)[:4000]
+
+    try:
+        resp = requests.post(
+            f"https://telegram.org{token}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": message,
+                "disable_web_page_preview": True,
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            print("  ✅ Telegram message sent!")
+        else:
+            print(f"  ❌ Telegram {resp.status_code}: {resp.text}")
+            sys.exit(1)
+    except requests.RequestException as e:
+        print(f"  ❌ Telegram failed: {e}")
+        sys.exit(1)
+
 
 def main():
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
