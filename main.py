@@ -145,13 +145,7 @@ def fetch_bms(event_code, date_code, region_code, region_slug, lat, lon, geohash
     except Exception as e:
         print(f"  Request failed: {e}")
     return None
-        if resp.status_code == 200:
-            return resp.json()
-        print(f"  HTTP {resp.status_code}")
-    except Exception as e:
-        print(f"  Request failed: {e}")
-    return None
-
+        
 def parse_movie_info(data):
     info = {"name": "Unknown Movie", "language": ""}
     for w in data.get("data", {}).get("topStickyWidgets", []):
