@@ -260,8 +260,17 @@ def save_state(state):
 def build_state(shows, dates):
     show_state = {}
     for s in shows:
+        base_key = f"{s.venue_code}|{s.session_id}|{s.date_code}"
+        show_state[base_key] = {
+            "venue": s.venue_name,
+            "time": s.time,
+            "date": s.date_code,
+            "cat": s.screen_attr or "Show",
+            "price": "0",
+            "status": "3",
+        }
         for c in s.categories:
-            key = f"{s.venue_code}|{s.session_id}|{s.date_code}|{c.name}"
+            key = f"{base_key}|{c.name}"
             show_state[key] = {
                 "venue": s.venue_name,
                 "time": s.time,
