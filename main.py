@@ -1,6 +1,5 @@
 """
 BMS Ticket Checker — CI/Headless mode for GitHub Actions (Telegram Edition).
-Runs once, checks configured watches, sends Telegram alert on changes.
 """
 
 import os
@@ -12,64 +11,53 @@ from dataclasses import dataclass, field
 from urllib.parse import urlparse
 import requests
 
-# ──────────────────────────────────────────────────────────────────────
-# CONFIGURATION — set via GitHub Variables
-# ──────────────────────────────────────────────────────────────────────
 CONFIG = {
     "url": os.getenv(
         "BMS_URL",
         "https://bookmyshow.com"
     ),
-    "dates": os.getenv("BMS_DATES", ""),          # comma-separated YYYYMMDD, empty = from URL
-    "theatre": os.getenv("BMS_THEATRE", ""),       # substring filter, empty = all
-    "time_period": os.getenv("BMS_TIME", ""),      # e.g. "evening,night", empty = all
+    "dates": os.getenv("BMS_DATES", ""),
+    "theatre": os.getenv("BMS_THEATRE", ""),
+    "time_period": os.getenv("BMS_TIME", ""),
 }
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
-
 STATE_FILE = "bms_state.json"
 
-# ──────────────────────────────────────────────────────────────────────
-# CONSTANTS
-# ──────────────────────────────────────────────────────────────────────
 AVAIL_STATUS_MAP = {
-    "0": ("SOLD OUT",    "🔴"),
+    "0": ("SOLD OUT", "🔴"),
     "1": ("ALMOST FULL", "🟡"),
-    "2": ("FILLING FAST","🟠"),
-    "3": ("AVAILABLE",   "🟢"),
+    "2": ("FILLING FAST", "🟠"),
+    "3": ("AVAILABLE", "🟢"),
 }
 
 DATE_STYLE_MAP = {
     "date-selected": "BOOKABLE",
     "date-disabled": "NOT_OPEN",
-    "date-default":  "AVAILABLE",
+    "date-default": "AVAILABLE",
 }
 
 TIME_PERIODS = {
-    "morning":   (600, 1200),
+    "morning": (600, 1200),
     "afternoon": (1200, 1600),
-    "evening":   (1600, 1900),
-    "night":     (1900, 2400),
+    "evening": (1600, 1900),
+    "night": (1900, 2400),
 }
 
 REGION_MAP = {
-    "chennai":    ("CHEN",   "chennai",    "13.056", "80.206", "tf3"),
-    "mumbai":     ("MUMBAI", "mumbai",     "19.076", "72.878", "te7"),
-    "delhi-ncr":  ("NCR",    "delhi-ncr",  "28.613", "77.209", "ttn"),
-    "delhi":      ("NCR",    "delhi-ncr",  "28.613", "77.209", "ttn"),
-    "bengaluru":  ("BANG",   "bengaluru",  "12.972", "77.594", "tdr"),
-    "bangalore":  ("BANG",   "bengaluru",  "12.972", "77.594", "tdr"),
-    "hyderabad":  ("HYD",    "hyderabad",  "17.385", "78.487", "tep"),
-    "kolkata":    ("KOLK",   "kolkata",    "22.573", "88.364", "tun"),
-    "pune":       ("PUNE",   "pune",       "18.520", "73.856", "te2"),
-    "kochi":      ("KOCH",   "kochi",      "9.932",  "76.267", "t9z"),
+    "chennai": ("CHEN", "chennai", "13.056", "80.206", "tf3"),
+    "mumbai": ("MUMBAI", "mumbai", "19.076", "72.878", "te7"),
+    "delhi-ncr": ("NCR", "delhi-ncr", "28.613", "77.209", "ttn"),
+    "delhi": ("NCR", "delhi-ncr", "28.613", "77.209", "ttn"),
+    "bengaluru": ("BANG", "bengaluru", "12.972", "77.594", "tdr"),
+    "bangalore": ("BANG", "bengaluru", "12.972", "77.594", "tdr"),
+    "hyderabad": ("HYD", "hyderabad", "17.385", "78.487", "tep"),
+    "kolkata": ("KOLK", "kolkata", "22.573", "88.364", "tun"),
+    "pune": ("PUNE", "pune", "18.520", "73.856", "te2"),
+    "kochi": ("KOCH", "kochi", "9.932", "76.267", "t9z"),
 }
 
-
-# ──────────────────────────────────────────────────────────────────────
-# DATA
-# ──────────────────────────────────────────────────────────────────────
 @dataclass
 class CatInfo:
     name: str
@@ -92,10 +80,6 @@ class DateInfo:
     date_code: str
     status: str
 
-
-# ──────────────────────────────────────────────────────────────────────
-# URL PARSER + REGION RESOLVER
-# ──────────────────────────────────────────────────────────────────────
 def parse_bms_url(url):
     path = urlparse(url).path.strip("/")
     parts = path.split("/")
@@ -111,37 +95,20 @@ def parse_bms_url(url):
             result["region_slug"] = parts[idx + 1]
     return result
 
-
 def resolve_region(slug):
     key = (slug or "").lower().strip()
     if key in REGION_MAP:
         return REGION_MAP[key]
     return (key.upper()[:6], key, "0", "0", "")
 
+API_URL = "https://bookmyshow.com"
 
-# ──────────────────────────────────────────────────────────────────────
-# BMS API
-# ──────────────────────────────────────────────────────────────────────
-API_URL = (
-    "https://bookmyshow.com"
-    "showtimes-by-event/primary-dynamic"
-)
-
-
-def fetch_bms(event_code, date_code, region_code, region_slug,
-              lat, lon, geohash):
+def fetch_bms(event_code, date_code, region_code, region_slug, lat, lon, geohash):
     headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/145.0.0.0 Safari/537.36"
-        ),
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": (
-            f"https://bookmyshow.com"
-            f"{region_slug}/buytickets/{event_code}/"
-        ),
+        "Referer": f"https://bookmyshow.com{region_slug}/buytickets/{event_code}/",
         "sec-ch-ua": '"Chromium";v="145", "Not:A-Brand";v="99"',
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": '"macOS"',
@@ -164,8 +131,7 @@ def fetch_bms(event_code, date_code, region_code, region_slug,
         "lat": lat, "lon": lon,
     }
     try:
-        resp = requests.get(API_URL, headers=headers,
-                            params=params, timeout=15)
+        resp = requests.get(API_URL, headers=headers, params=params, timeout=15)
         if resp.status_code == 200:
             return resp.json()
         print(f"  HTTP {resp.status_code}")
@@ -173,10 +139,6 @@ def fetch_bms(event_code, date_code, region_code, region_slug,
         print(f"  Request failed: {e}")
     return None
 
-
-# ──────────────────────────────────────────────────────────────────────
-# PARSERS
-# ──────────────────────────────────────────────────────────────────────
 def parse_movie_info(data):
     info = {"name": "Unknown Movie", "language": ""}
     for w in data.get("data", {}).get("topStickyWidgets", []):
@@ -194,7 +156,6 @@ def parse_movie_info(data):
                     info["name"] = d.get("text", info["name"])
     return info
 
-
 def parse_dates(data):
     dates = []
     for w in data.get("data", {}).get("topStickyWidgets", []):
@@ -210,7 +171,6 @@ def parse_dates(data):
                 ))
     return dates
 
-
 def parse_shows(data):
     shows = []
     for w in data.get("data", {}).get("showtimeWidgets", []):
@@ -225,17 +185,11 @@ def parse_shows(data):
                 addl = card.get("additionalData", {})
                 vname = addl.get("venueName", "Unknown")
                 vcode = addl.get("venueCode", "")
-
                 for st in card.get("showtimes", []):
                     sa = st.get("additionalData", {})
-                    date_code = str(
-                        sa.get("showDateCode", "")
-                        or sa.get("dateCode", "")
-                    ).strip()
-                    if not date_code and re.match(
-                            r"^\d{8}", sa.get("cutOffDateTime", "")):
+                    date_code = str(sa.get("showDateCode", "") or sa.get("dateCode", "")).strip()
+                    if not date_code and re.match(r"^\d{8}", sa.get("cutOffDateTime", "")):
                         date_code = sa["cutOffDateTime"][:8]
-
                     show = ShowInfo(
                         venue_code=vcode,
                         venue_name=vname,
@@ -243,8 +197,7 @@ def parse_shows(data):
                         date_code=date_code,
                         time=st.get("title", ""),
                         time_code=sa.get("showTimeCode", ""),
-                        screen_attr=(st.get("screenAttr", "")
-                                     or sa.get("attributes", "")),
+                        screen_attr=(st.get("screenAttr", "") or sa.get("attributes", "")),
                     )
                     for cat in sa.get("categories", []):
                         ca = str(cat.get("availStatus", ""))
@@ -256,30 +209,76 @@ def parse_shows(data):
                     shows.append(show)
     return shows
 
-
-# ──────────────────────────────────────────────────────────────────────
-# FILTERING
-# ──────────────────────────────────────────────────────────────────────
 def filter_shows(shows, theatre_filter, time_periods, date_codes):
     result = []
-    kws = [k.strip().lower() for k in theatre_filter.split(",")
-           if k.strip()] if theatre_filter else []
-    periods = [p.strip().lower() for p in time_periods.split(",")
-               if p.strip()] if time_periods else []
-    dates_set = set(d.strip() for d in date_codes.split(",")
-                    if d.strip()) if date_codes else set()
+    kws = [k.strip().lower() for k in theatre_filter.split(",") if k.strip()] if theatre_filter else []
+    periods = [p.strip().lower() for p in time_periods.split(",") if p.strip()] if time_periods else []
+    dates_set = set(d.strip() for d in date_codes.split(",") if d.strip()) if date_codes else set()
 
     for s in shows:
         if kws:
             name_lower = s.venue_name.lower()
             if not any(k in name_lower for k in kws):
                 continue
-
         if dates_set and s.date_code and s.date_code not in dates_set:
             continue
-
         if periods:
             try:
                 tc = int(s.time_code)
             except ValueError:
                 tc = 0
+            matched = False
+            for p in periods:
+                if p in TIME_PERIODS:
+                    lo, hi = TIME_PERIODS[p]
+                    if lo <= tc < hi:
+                        matched = True
+                        break
+            if not matched:
+                continue
+        result.append(s)
+    return result
+
+def load_state():
+    try:
+        with open(STATE_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+def build_state(shows, dates):
+    show_state = {}
+    for s in shows:
+        for c in s.categories:
+            key = f"{s.venue_code}|{s.session_id}|{s.date_code}|{c.name}"
+            show_state[key] = {
+                "venue": s.venue_name,
+                "time": s.time,
+                "date": s.date_code,
+                "cat": c.name,
+                "price": c.price,
+                "status": c.status,
+            }
+    date_state = {d.date_code: d.status for d in dates}
+    return {"shows": show_state, "dates": date_state}
+
+def detect_changes(old_state, new_state):
+    changes = []
+    old_dates = old_state.get("dates", {})
+    new_dates = new_state.get("dates", {})
+    for dc, status in new_dates.items():
+        old_status = old_dates.get(dc)
+        if old_status == "NOT_OPEN" and status in ("BOOKABLE", "AVAILABLE"):
+            changes.append(f"📅 NEW DATE OPENED: {dc}")
+
+    old_shows = old_state.get("shows", {})
+    new_shows = new_state.get("shows", {})
+
+    for key in set(new_shows) - set(old_shows):
+        s = new_shows[key]
+        changes.append(f"🆕 NEW: {s['venue']} — {s['time']} [{s['date']}] ({s['cat']} ₹{s['price']})")
+
