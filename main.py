@@ -355,9 +355,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-    for key in set(new_shows) - set(old_shows):
-        s = new_shows[key]
-        changes.append(f"🆕 NEW: {s['venue']} — {s['time']} [{s['date']}] ({s['cat']} ₹{s['price']})")
-
