@@ -104,6 +104,7 @@ def resolve_region(slug):
 API_URL = "https://in." + "://bookmyshow.com"
 
 
+
 def fetch_bms(event_code, date_code, region_code, region_slug, lat, lon, geohash):
     base = "https://in." + "bookmyshow.com"
     headers = {
