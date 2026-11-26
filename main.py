@@ -349,7 +349,8 @@ def main():
     changes = detect_changes(old_state, new_state)
     save_state(new_state)
 
-    if changes:
+    if changes or os.getenv("GITHUB_EVENT_NAME") == "workflow_dispatch":
+
         print(f"\n  ⚡ {len(changes)} change(s) detected:")
         for c in changes:
             print(f"     {c}")
