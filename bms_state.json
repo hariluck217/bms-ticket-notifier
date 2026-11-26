@@ -1,43 +1,93 @@
-name: BMS Ticket Checker
-
-on:
-  schedule:
-    # Every 30 minutes
-    - cron: '*/30 * * * *'
-  workflow_dispatch:  # Manual trigger button
-
-jobs:
-  check-tickets:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: '3.14'
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Run checker
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          BMS_URL: ${{ vars.BMS_URL }}
-          BMS_DATES: ${{ vars.BMS_DATES }}
-          BMS_THEATRE: ${{ vars.BMS_THEATRE }}
-          BMS_TIME: ${{ vars.BMS_TIME }}
-        run: uv run main.py
-
-      - name: Commit updated state
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bms_state.json
-          git diff --cached --quiet || (git commit -m "chore: update bms_state.json [skip ci]" && git push)
+{
+  "shows": {
+    "ALUC|7007|20261217|3D PLATINUM": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "10:00 AM",
+      "date": "20261217",
+      "cat": "3D PLATINUM",
+      "price": "390.00",
+      "status": "0"
+    },
+    "ALUC|7007|20261217|3D GOLD": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "10:00 AM",
+      "date": "20261217",
+      "cat": "3D GOLD",
+      "price": "335.00",
+      "status": "0"
+    },
+    "ALUC|7043|20261217|3D PLATINUM": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "01:15 PM",
+      "date": "20261217",
+      "cat": "3D PLATINUM",
+      "price": "390.00",
+      "status": "0"
+    },
+    "ALUC|7043|20261217|3D GOLD": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "01:15 PM",
+      "date": "20261217",
+      "cat": "3D GOLD",
+      "price": "335.00",
+      "status": "0"
+    },
+    "ALUC|7044|20261217|3D PLATINUM": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "04:30 PM",
+      "date": "20261217",
+      "cat": "3D PLATINUM",
+      "price": "390.00",
+      "status": "0"
+    },
+    "ALUC|7044|20261217|3D GOLD": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "04:30 PM",
+      "date": "20261217",
+      "cat": "3D GOLD",
+      "price": "335.00",
+      "status": "0"
+    },
+    "ALUC|7045|20261217|3D PLATINUM": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "07:45 PM",
+      "date": "20261217",
+      "cat": "3D PLATINUM",
+      "price": "390.00",
+      "status": "0"
+    },
+    "ALUC|7045|20261217|3D GOLD": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "07:45 PM",
+      "date": "20261217",
+      "cat": "3D GOLD",
+      "price": "335.00",
+      "status": "0"
+    },
+    "ALUC|7046|20261217|3D PLATINUM": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "11:00 PM",
+      "date": "20261217",
+      "cat": "3D PLATINUM",
+      "price": "390.00",
+      "status": "0"
+    },
+    "ALUC|7046|20261217|3D GOLD": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "11:00 PM",
+      "date": "20261217",
+      "cat": "3D GOLD",
+      "price": "335.00",
+      "status": "0"
+    }
+  },
+  "dates": {
+    "20261217": "BOOKABLE",
+    "20261218": "AVAILABLE",
+    "20261219": "AVAILABLE",
+    "20261220": "AVAILABLE",
+    "20261221": "AVAILABLE",
+    "20261222": "AVAILABLE",
+    "20261223": "AVAILABLE"
+  }
+}
