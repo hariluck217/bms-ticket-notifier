@@ -278,6 +278,78 @@ def detect_changes(old_state, new_state):
     old_shows = old_state.get("shows", {})
     new_shows = new_state.get("shows", {})
 
+
+def main():
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{now_str}] BMS Ticket Checker — Telegram CI mode")
+
+    parsed = parse_bms_url(CONFIG["url"])
+    event_code = parsed["event_code"]
+    region_slug = parsed["region_slug"]
+    url_date = parsed.get("date_code", "")
+
+    if not event_code or not region_slug:
+        print("  ❌ Invalid BMS_URL. Could not extract event/region.")
+        sys.exit(1)
+
+    region_code, region_slug_r, lat, lon, geohash = resolve_region(region_slug)
+
+    raw_dates = CONFIG["dates"].strip()
+    if raw_dates:
+        date_list = [d.strip() for d in raw_dates.split(",") if d.strip()]
+    elif url_date:
+        date_list = [url_date]
+    else:
+        date_list = [""]
+
+    print(f"  Event: {event_code}  Region: {region_code}  Dates: {date_list}")
+
+    all_shows = []
+    all_dates = []
+    movie_info = {"name": "Unknown", "language": ""}
+
+    for dc in date_list:
+        data = fetch_bms(event_code, dc, region_code, region_slug_r, lat, lon, geohash)
+        if not data:
+            print(f"  ⚠️ No data for date {dc or '(default)'}")
+            continue
+        if movie_info["name"] == "Unknown":
+            movie_info = parse_movie_info(data)
+        all_dates.extend(parse_dates(data))
+        all_shows.extend(parse_shows(data))
+
+    if not all_shows:
+        print("  ❌ No showtimes found yet.")
+        sys.exit(0)
+
+    print(f"  🎬 {movie_info['name']}  {movie_info['language']}")
+
+    filtered = filter_shows(all_shows, CONFIG["theatre"], CONFIG["time_period"], CONFIG["dates"])
+    print(f"  📊 {len(filtered)} showtime(s) after filters")
+
+    new_state = build_state(filtered, all_dates)
+    old_state = load_state()
+
+    changes = detect_changes(old_state, new_state)
+    save_state(new_state)
+
+    if changes:
+        print(f"\n  ⚡ {len(changes)} change(s) detected:")
+        for c in changes:
+            print(f"     {c}")
+        send_telegram(
+            f"BMS Alert: {movie_info['name']} ({len(changes)} update(s))",
+            changes, filtered, movie_info, CONFIG["url"],
+        )
+    else:
+        print("  ✅ No changes since last check.")
+
+    print("\n  Done.")
+
+if __name__ == "__main__":
+    main()
+
+
     for key in set(new_shows) - set(old_shows):
         s = new_shows[key]
         changes.append(f"🆕 NEW: {s['venue']} — {s['time']} [{s['date']}] ({s['cat']} ₹{s['price']})")
