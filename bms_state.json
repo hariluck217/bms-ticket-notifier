@@ -1,5 +1,13 @@
 {
   "shows": {
+    "ALUC|7007|20261217": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "10:00 AM",
+      "date": "20261217",
+      "cat": "LASER 4K ATMOS",
+      "price": "0",
+      "status": "3"
+    },
     "ALUC|7007|20261217|3D PLATINUM": {
       "venue": "ALLU Cinemas: Kokapet",
       "time": "10:00 AM",
@@ -15,6 +23,14 @@
       "cat": "3D GOLD",
       "price": "335.00",
       "status": "0"
+    },
+    "ALUC|7043|20261217": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "01:15 PM",
+      "date": "20261217",
+      "cat": "LASER 4K ATMOS",
+      "price": "0",
+      "status": "3"
     },
     "ALUC|7043|20261217|3D PLATINUM": {
       "venue": "ALLU Cinemas: Kokapet",
@@ -32,6 +48,14 @@
       "price": "335.00",
       "status": "0"
     },
+    "ALUC|7044|20261217": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "04:30 PM",
+      "date": "20261217",
+      "cat": "LASER 4K ATMOS",
+      "price": "0",
+      "status": "3"
+    },
     "ALUC|7044|20261217|3D PLATINUM": {
       "venue": "ALLU Cinemas: Kokapet",
       "time": "04:30 PM",
@@ -48,6 +72,14 @@
       "price": "335.00",
       "status": "0"
     },
+    "ALUC|7045|20261217": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "07:45 PM",
+      "date": "20261217",
+      "cat": "LASER 4K ATMOS",
+      "price": "0",
+      "status": "3"
+    },
     "ALUC|7045|20261217|3D PLATINUM": {
       "venue": "ALLU Cinemas: Kokapet",
       "time": "07:45 PM",
@@ -63,6 +95,14 @@
       "cat": "3D GOLD",
       "price": "335.00",
       "status": "0"
+    },
+    "ALUC|7046|20261217": {
+      "venue": "ALLU Cinemas: Kokapet",
+      "time": "11:00 PM",
+      "date": "20261217",
+      "cat": "LASER 4K ATMOS",
+      "price": "0",
+      "status": "3"
     },
     "ALUC|7046|20261217|3D PLATINUM": {
       "venue": "ALLU Cinemas: Kokapet",
