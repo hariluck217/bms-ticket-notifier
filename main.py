@@ -347,7 +347,7 @@ def send_telegram(title, changes, shows, movie_info, bms_url):
 
     try:
         resp = requests.post(
-            f"https://telegram.org{token}/sendMessage",
+            f"https://api." + f"telegram.org/bot{token}/sendMessage",
             json={
                 "chat_id": chat_id,
                 "text": message,
