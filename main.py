@@ -101,12 +101,9 @@ def resolve_region(slug):
         return REGION_MAP[key]
     return (key.upper()[:6], key, "0", "0", "")
 
-API_URL = "https://in." + "://bookmyshow.com"
-
-
-
 def fetch_bms(event_code, date_code, region_code, region_slug, lat, lon, geohash):
     base = "https://in." + "bookmyshow.com"
+    api_url = f"{base}/api/movies-data/v4/showtimes-by-event/primary-dynamic"
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -136,12 +133,18 @@ def fetch_bms(event_code, date_code, region_code, region_slug, lat, lon, geohash
     try:
         from curl_cffi import requests as cffi_requests
         resp = cffi_requests.get(
-            API_URL,
+            api_url,
             headers=headers,
             params=params,
             impersonate="chrome",
             timeout=15,
         )
+        if resp.status_code == 200:
+            return resp.json()
+        print(f"  HTTP {resp.status_code}")
+    except Exception as e:
+        print(f"  Request failed: {e}")
+    return None
         if resp.status_code == 200:
             return resp.json()
         print(f"  HTTP {resp.status_code}")
